@@ -38,4 +38,48 @@
       "allow-pascal-case"
     ]
   }
+}// Dateiname: tslint-fixer.ts
+
+import fs from 'fs';
+import path from 'path';
+
+const bannedPatterns = [
+  { regex: /\.only\(/g, fix: str => str.replace(/\.only\(/g, '('), message: 'Entferne .only() aus Tests' },
+  { regex: /Object\.assign/g, fix: str => str.replace(/Object\.assign/g, 'spreadOperatorFix'), message: 'Nutze Spread statt Object.assign' }
+];
+
+const processFile = (filePath: string) => {
+  let content = fs.readFileSync(filePath, 'utf-8');
+  let updated = false;
+
+  bannedPatterns.forEach(({ regex, fix, message }) => {
+    if (regex.test(content)) {
+      console.log(`-> [Fix] ${message} in ${filePath}`);
+      content = fix(content);
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    fs.writeFileSync(filePath, content, 'utf-8');
+    console.log(`✅ Datei aktualisiert: ${filePath}`);
+  }
+};
+
+const scanDirectory = (dir: string) => {
+  fs.readdirSync(dir).forEach(file => {
+    const fullPath = path.join(dir, file);
+    if (fs.statSync(fullPath).isDirectory()) {
+      scanDirectory(fullPath);
+    } else if (file.endsWith('.ts')) {
+      processFile(fullPath);
+    }
+  });
+};
+
+scanDirectory('./src');  // Passe an dein Projekt an"scripts": {
+  "lint-fix": "ts-node tslint-fixer.ts"
 }
+npx tslint-to-eslint-config
+npm install eslint --save-dev
+npx eslint . --fix
